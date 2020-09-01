@@ -2,9 +2,9 @@ import time
 import os
 import os.path as osp
 import torch
-from sai2_environment.reinforcement_learning import EpochLogger
-from sai2_environment.robot_env import RobotEnv
-from sai2_environment.action_space import ActionSpace
+from utils.logx import EpochLogger
+from robot_env import RobotEnv
+from action_space import ActionSpace
 
 def load_policy_and_env(fpath, itr='last', deterministic=False):
     # handle which epoch to load from
@@ -76,7 +76,7 @@ def run_policy(env, get_action, max_ep_len=None, num_episodes=100, render=True):
 
 def main():
 
-    fpath = '/home/vincent/sai2/sai2_environment/sai2_environment/logs/2020-08-28_peg_in_hole_test/2020-08-28_21-44-34-peg_in_hole_test_s0'
+    fpath = '/home/vincent/sai2/reinforcement_learning/logs/2020-08-28_peg_in_hole_test/2020-08-28_21-44-34-peg_in_hole_test_s0'
     length = 300
     episodes = 3
     norender = True

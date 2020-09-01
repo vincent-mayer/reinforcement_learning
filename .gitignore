@@ -130,3 +130,5 @@ dmypy.json
 
 # Other stuff
 logs/
+sai2_environment_rl/
+.vscode/

@@ -9,12 +9,11 @@ import json
 import joblib
 import shutil
 import numpy as np
-import tensorflow as tf
 import torch
 import os.path as osp, time, atexit, os
 import warnings
-from sai2_environment.reinforcement_learning.utils.mpi_tools import proc_id, mpi_statistics_scalar
-from sai2_environment.reinforcement_learning.utils.serialization_utils import convert_json
+from utils.mpi_tools import proc_id, mpi_statistics_scalar
+from utils.serialization_utils import convert_json
 from torch.utils.tensorboard import SummaryWriter
 color2num = dict(
     gray=30,
@@ -185,8 +184,6 @@ class Logger:
                 joblib.dump(state_dict, osp.join(self.output_dir, fname))
             except:
                 self.log('Warning: could not pickle state_dict.', color='red')
-            if hasattr(self, 'tf_saver_elements'):
-                self._tf_simple_save(itr)
             if hasattr(self, 'pytorch_saver_elements'):
                 self._pytorch_simple_save(itr)
 

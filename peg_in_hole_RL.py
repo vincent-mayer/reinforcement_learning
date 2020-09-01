@@ -1,10 +1,10 @@
-from sai2_environment.robot_env import RobotEnv
-from sai2_environment.action_space import ActionSpace
+from robot_env import RobotEnv
+from action_space import ActionSpace
 
 import torch
 
-from sai2_environment.reinforcement_learning.utils.run_utils import setup_logger_kwargs
-from sai2_environment.reinforcement_learning.rl_algos import sac
+from utils.run_utils import setup_logger_kwargs
+from rl_algos import sac
 
 
 def main():

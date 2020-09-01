@@ -10,11 +10,11 @@ from torch.distributions.normal import Normal
 import torch.nn as nn
 import torch.nn.functional as F
 
-from sai2_environment.reinforcement_learning.utils.logx import EpochLogger
+from utils.logx import EpochLogger
 
 import matplotlib.pyplot as plt
-import sai2_environment.reinforcement_learning.networks as networks
-from sai2_environment.reinforcement_learning.utils.frame_stack import FrameStack
+import networks as networks
+from utils.frame_stack import FrameStack
 #*********************++++++++++++++++++++++++++++ Variables ++++++++++++++++++++++++++++++***********************#
 LOG_STD_MAX = 2
 LOG_STD_MIN = -20
