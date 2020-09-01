@@ -2,9 +2,11 @@ import time
 import os
 import os.path as osp
 import torch
-from utils.logx import EpochLogger
-from robot_env import RobotEnv
-from action_space import ActionSpace
+from sai2_environment.reinforcement_learning.utils.logx import EpochLogger
+from sai2_environment.robot_env import RobotEnv
+from sai2_environment.action_space import ActionSpace
+
+device = torch.device('cuda')
 
 def load_policy_and_env(fpath, itr='last', deterministic=False):
     # handle which epoch to load from
@@ -40,10 +42,9 @@ def load_pytorch_policy(fpath, itr, deterministic=False):
     model = torch.load(fname)
 
     # make function for producing an action given a single state
-    def get_action(x):
+    def get_action(obs):
         with torch.no_grad():
-            x = torch.as_tensor(x, dtype=torch.float32)
-            action = model.act(x)
+            action = model.act(obs)
         return action
 
     return get_action
