@@ -24,7 +24,7 @@ if torch.cuda.is_available():
 else:
     device = torch.device('cpu')
 
-frame_stack_size = 4
+frame_stack_size = 1
 succ_env_itr = 0
 succ_test_env_itr = 0
 #*********************++++++++++++++++++++++++++++ SAC core +++++++++++++++++++++++++++++++************************#
@@ -186,8 +186,10 @@ class CNNActorCritic(nn.Module):
         #obs_dim = observation_space.shape[0]
         act_dim = action_space.shape[0]
         act_limit = action_space.high
-        
-        self.cnn = CnnEncoder(observation_space['camera'][0]*observation_space['camera'][1])
+        if len(observation_space['camera']) > 3:
+            self.cnn = CnnEncoder(observation_space['camera'][0]*observation_space['camera'][1])
+        else:
+            self.cnn = CnnEncoder(observation_space['camera'][0])
         self.cnn = self.cnn.to(device)
         # Obs dim is output of conv network
         obs_dim = self.cnn.get_output_dim()
@@ -276,7 +278,7 @@ class ReplayBuffer:
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
 
 def sac(env_fn, actor_critic=CNNActorCritic, ac_kwargs=dict(), seed=0, 
-        steps_per_epoch=4000, epochs=100, replay_size=int(1e4), gamma=0.99, 
+        steps_per_epoch=4000, epochs=100, replay_size=int(1e6), gamma=0.99, 
         polyak=0.995, lr=1e-3, alpha=0.2, batch_size=100, start_steps=10000, 
         update_after=1000, update_every=50, num_test_episodes=10, max_ep_len=1000, 
         logger_kwargs=dict(), save_freq=1, debug=False):
@@ -410,7 +412,7 @@ def sac(env_fn, actor_critic=CNNActorCritic, ac_kwargs=dict(), seed=0,
                 if r != 0:
                     print(" Action from CNN ACTOR: TEST REWARD: {}\n".format(r))
                     print("Current test length: {}\n".format(ep_len))
-                    succ_test_env_itr += 1
+                    #succ_test_env_itr += 1
                 ep_ret += r
                 ep_len += 1
             if not debug:
@@ -500,7 +502,7 @@ def sac(env_fn, actor_critic=CNNActorCritic, ac_kwargs=dict(), seed=0,
                 print("the action came from SAMPLER!! \n")
             #print("Current Action command: \n {} \n".format(a))
             print("\n REWARD: {}\n".format(r))
-            succ_env_itr += 1
+            #succ_env_itr += 1
 
             
         print("Current step: {}\n Current Epoch:{}\n".format(t,(t+1) // steps_per_epoch))
@@ -552,8 +554,8 @@ def sac(env_fn, actor_critic=CNNActorCritic, ac_kwargs=dict(), seed=0,
             if not debug:
                 print("-------------------------LOGGING EPOCH {}-------------------------".format(epoch))
                 logger.log_tabular('Epoch', epoch)
-                logger.log_tabular('Successful env interacts', succ_env_itr)
-                logger.log_tabular('Successful test env interacts', succ_test_env_itr)
+                #logger.log_tabular('Successful env interacts', succ_env_itr)
+                #logger.log_tabular('Successful test env interacts', succ_test_env_itr)
             # logger.log_tabuöar('Amount of Crashes', epoch=epoch)
                 logger.log_tabular('EpRet', with_min_and_max=True, epoch=epoch)
                 logger.log_tabular('TestEpRet', with_min_and_max=True, epoch=epoch)

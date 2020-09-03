@@ -1,8 +1,8 @@
-from user_config import DEFAULT_DATA_DIR, FORCE_DATESTAMP, \
+from sai2_environment.reinforcement_learning.user_config import DEFAULT_DATA_DIR, FORCE_DATESTAMP, \
                                DEFAULT_SHORTHAND, WAIT_BEFORE_LAUNCH
-from utils.logx import colorize
-from utils.mpi_tools import mpi_fork, msg
-from utils.serialization_utils import convert_json
+from sai2_environment.reinforcement_learning.utils.logx import colorize
+from sai2_environment.reinforcement_learning.utils.mpi_tools import mpi_fork, msg
+from sai2_environment.reinforcement_learning.utils.serialization_utils import convert_json
 import base64
 from copy import deepcopy
 import cloudpickle

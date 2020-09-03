@@ -4,7 +4,6 @@ from sai2_environment.action_space import ActionSpace
 
 import numpy as np
 import time
-from PIL import Image
 import torch
 
 
@@ -22,18 +21,37 @@ def main():
                    blocking_action=blocking_action,
                    rotation_axis=(0, 0, 1),
                    observation_type=dict(camera=1, q=0, dq=0, tau=0, x=1, dx=1))    
-                   
-    o, ep_ret, ep_len = env.reset(), 0, 0
-    test_a = np.array([0,0,-0.3,0,0,0])
-    test_b = np.array([0,0,-0.02,0,0,0])
+    env.reset()               
+
+ 
+    for i in range(0,4):
+        test_a = np.array([0,0,-0.05,0,0,0])
+        o2, r, d, _ = env.step(test_a)
+        test_a = np.array([0.05,0,0,0,0,0])
+        o2, r, d, _ = env.step(test_a)
+    test_a = np.array([0,0,-0.05,0,0,0])
     o2, r, d, _ = env.step(test_a)
-    time.sleep(2)
-    o2_wait,_,_,_ = env.step(np.array([0,0,0,0,0,0]))
-    for i in range(0,100):
-        x = o2[1]
-        o2, r, d, _ = env.step(test_b)
+    test_a = np.array([0,0,-0.1,0,0,0])
+    o2, r, d, _ = env.step(test_a)
 
 
+    # test_a = np.array([-0.02,0,0,0,0,0])
+    # o2, r, d, _ = env.step(test_a)
+
+    # test_a = np.array([0,0,-0.03,0,0,0])
+    # o2, r, d, _ = env.step(test_a)
+
+    # test_a = np.array([-0.017,0,0,0,0,0])
+    # o2, r, d, _ = env.step(test_a)
+
+    # test_a = np.array([0,0,-0.03,0,0,0])
+    # o2, r, d, _ = env.step(test_a)
+
+    # test_a = np.array([0,0,-0.02,0,0,0])
+    # o2, r, d, _ = env.step(test_a)
+
+
+    print("Done")
 
 if __name__ == "__main__":
     main()

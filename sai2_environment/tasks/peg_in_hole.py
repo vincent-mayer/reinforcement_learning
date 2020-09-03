@@ -13,14 +13,14 @@ class PegInHole(Task):
         self.GOAL_POS_KEY  = "sai2::ReinforcementLearning::move_object_to_target::goal_position"
         if simulation:
             self.hole_pos = self._client.redis2array(self._client.get(self.GOAL_POS_KEY))
-            self.hole_pos[2] += 0.06 # adjust z-position such that it gives top of the hole
+            self.hole_pos[2] += 0.05 # adjust z-position such that it gives top of the hole
             self.current_peg_pos = self.get_current_peg_pos() # returns bottom of peg
             # Hyperparameters for reward
             self.lamda = 7 
             self.ca = 1
             self.ci = 2
             self.cr = 1
-            self.epsilon1 = 0.03 # maximal reward in alignment stage when peg closer than 5cm to goal
+            self.epsilon1 = 0.03 # maximal reward in alignment stage when peg closer than ccm to goal
             self.epsilon2 = 0.01 # success, when only 0.5cm away from max insertion depth
             self.hd = 0.03 #depth of the hole is 3cm, peg can be inserted approx. 2.5cm
         else:
