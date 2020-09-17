@@ -77,11 +77,11 @@ def run_policy(env, get_action, max_ep_len=None, num_episodes=100, render=True):
 
 def main():
 
-    fpath = '/home/vincent/sai2/reinforcement_learning/logs/2020-08-28_peg_in_hole_test/2020-08-28_21-44-34-peg_in_hole_test_s0'
+    fpath = '/home/vincent/sai2/reinforcement_learning/logs/2020-09-16_peg_in_hole_test/2020-09-16_11-55-09-peg_in_hole_test_s0'
     length = 300
     episodes = 3
     norender = True
-    iteration = 'last'#>=0 or last
+    iteration = 'last' #'last'# >=0 or last
     deterministic = False
 
     # Robot Env

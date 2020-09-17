@@ -115,37 +115,24 @@ class MLPActorCritic(nn.Module):
 class CnnEncoder(nn.Module):
     """
     """
-    def __init__(self, img_channels = 3, feature_dim=128, params = None, img_size = 128):
+    def __init__(self, img_channels = 3, output_dim = 128, params = None, img_size = 128):
         super(CnnEncoder, self).__init__()
-        channels = [img_channels] + [32,32,32,32,32,32]
-        kernel_sizes = [3,3,3,3,3,3]
-        stride_size = [2,1,1,1,1,1]
-        padding_sizes= [0,0,0,0,0,0]
-        # for 84 x 84 inputs
-        OUT_DIM = {2: 39, 4: 35, 6: 31}
-        # for 64 x 64 inputs
-        OUT_DIM_64 = {2: 29, 4: 25, 6: 21}
-        # for 128 x 128 inputs
-        OUT_DIM_128 = {2: 61,4: 57,6: 53}
-
-        if img_size == 84:
-            self.out_dim = OUT_DIM[6]
-        elif img_size == 64:
-            self.out_dim = OUT_DIM_64[6]
-        elif img_size == 128:
-            self.out_dim = OUT_DIM_128[6]
-        else:
-            raise NotImplementedError
-        
-        h_dim = channels[-1]*self.out_dim*self.out_dim
+        filters  = [img_channels] + [32,32,32,32]
+        kernels  = [3,3,3,3]
+        strides  = [2,1,1,1]
+        paddings = [0,0,0,0]
+        OUT_DIM  = [output_dim]
+        for i in range(1,len(kernels)+1): OUT_DIM.append(int((OUT_DIM[i-1]-kernels[i-1]+2*paddings[i-1])/strides[i-1]+1))
+        self.out_dim = OUT_DIM[-1]
+        h_dim = filters[-1]*self.out_dim*self.out_dim
         self.output_logits = False
-        self.encoder = networks.make_cnn(params, channels, kernel_sizes, stride_size, padding_sizes)
-        self.output_layer = nn.Linear(h_dim, feature_dim)
-        self.layer_norm = nn.LayerNorm(feature_dim)
-        self.feature_dim = feature_dim
+        self.encoder = networks.make_cnn(params, filters, kernels, strides, paddings)
+        self.output_layer = nn.Linear(h_dim, output_dim)
+        self.layer_norm = nn.LayerNorm(output_dim)
+        self.output_dim = output_dim
     
     def get_output_dim(self):
-        return self.feature_dim
+        return self.output_dim
 
     def forward_conv(self, x):
         x = x / 255.
@@ -182,8 +169,6 @@ class CNNActorCritic(nn.Module):
     def __init__(self, observation_space, action_space, hidden_sizes=(256,256),
                  activation=nn.ReLU):
         super().__init__()
-
-        #obs_dim = observation_space.shape[0]
         act_dim = action_space.shape[0]
         act_limit = action_space.high
         if len(observation_space['camera']) > 3:
@@ -191,10 +176,8 @@ class CNNActorCritic(nn.Module):
         else:
             self.cnn = CnnEncoder(observation_space['camera'][0])
         self.cnn = self.cnn.to(device)
-        # Obs dim is output of conv network
-        obs_dim = self.cnn.get_output_dim()
-        # append robot state
-        obs_dim += observation_space["proprioception"][0]
+        # Obs dim is output of conv network and size of proprioception
+        obs_dim = self.cnn.get_output_dim() + observation_space['proprioception'][0]
         # build policy and value functions, make them work with CNN output
         self.actor = SquashedGaussianMLPActor(obs_dim, act_dim, hidden_sizes, activation, act_limit).to(device)
         self.critic_1 = MLPQFunction(obs_dim, act_dim, hidden_sizes, activation).to(device)
@@ -278,22 +261,23 @@ class ReplayBuffer:
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
 
 def sac(env_fn, actor_critic=CNNActorCritic, ac_kwargs=dict(), seed=0, 
-        steps_per_epoch=4000, epochs=100, replay_size=int(1e6), gamma=0.99, 
+        steps_per_epoch=4000, epochs=100, replay_size=int(1e5), gamma=0.99, 
         polyak=0.995, lr=1e-3, alpha=0.2, batch_size=100, start_steps=10000, 
         update_after=1000, update_every=50, num_test_episodes=10, max_ep_len=1000, 
         logger_kwargs=dict(), save_freq=1, debug=False):
 
     test = 1
+    global succ_env_itr
     if test == 1:
         # Current training settings
         steps_per_epoch = 600
         epochs = 100
-        replay_size=int(1e4)
-        lr=1e-3
+        replay_size = int(1e5)
+        lr = 1e-3
         batch_size = 128
         start_steps = 1000
-        update_after = 300
-        update_every = 150
+        update_after = 500
+        update_every = 50
         num_test_episodes = 2
         max_ep_len = 200
     elif test == 2:
@@ -403,16 +387,19 @@ def sac(env_fn, actor_critic=CNNActorCritic, ac_kwargs=dict(), seed=0,
         return ac.act(o, deterministic)
 
     def test_agent():
+        global succ_test_env_itr
         for j in range(num_test_episodes):
+            a_anti_stuck = np.array([0,0,0.1,0,0,0])
+            test_env.step(a_anti_stuck)
             o, d, ep_ret, ep_len = test_env.reset(), False, 0, 0
             while not(d or (ep_len == max_ep_len)):
                 a = get_action(o, True)
                 # Test step the env
                 o, r, d, _ = test_env.step(a)
                 if r != 0:
-                    print(" Action from CNN ACTOR: TEST REWARD: {}\n".format(r))
+                    print("Action from CNN ACTOR: TEST REWARD: {}\n".format(r))
                     print("Current test length: {}\n".format(ep_len))
-                    #succ_test_env_itr += 1
+                    succ_test_env_itr += 1
                 ep_ret += r
                 ep_len += 1
             if not debug:
@@ -454,7 +441,7 @@ def sac(env_fn, actor_critic=CNNActorCritic, ac_kwargs=dict(), seed=0,
         
     # List of parameters for both Q-networks (save this for convenience)
     q_params = itertools.chain(ac.critic_1.parameters(), ac.critic_2.parameters(), ac.cnn.parameters())
-    pi_params = itertools.chain(ac.actor.parameters(), ac.cnn.parameters())
+    pi_params = itertools.chain(ac.actor.parameters()) # removed the conv parameters from actor gradient
 
     # Experience buffer
     replay_buffer = ReplayBuffer(obs_dim=obs_dim, act_dim=act_dim, size=replay_size)
@@ -481,14 +468,10 @@ def sac(env_fn, actor_critic=CNNActorCritic, ac_kwargs=dict(), seed=0,
         # Until start_steps have elapsed, randomly sample actions
         # from a uniform distribution for better exploration. Afterwards, 
         # use the learned policy.
-        action_from_actor = False
-        action_from_sampler = False
         if t > start_steps:
             a = get_action(o)
-            action_from_actor = True
             
         else:
-            action_from_sampler = True
             a = env.action_space.sample()
 
         # Step the env
@@ -496,20 +479,24 @@ def sac(env_fn, actor_critic=CNNActorCritic, ac_kwargs=dict(), seed=0,
         
         # Monitor the stiffness values and action command
         if r != 0:
-            if action_from_actor:
-                print("the action came from ACTOR!! \n")
-            elif action_from_sampler:
-                print("the action came from SAMPLER!! \n")
             #print("Current Action command: \n {} \n".format(a))
             print("\n REWARD: {}\n".format(r))
-            #succ_env_itr += 1
+            succ_env_itr += 1
 
-            
         print("Current step: {}\n Current Epoch:{}\n".format(t,(t+1) // steps_per_epoch))
-        # Monitor observation
         """
         plt.imshow(np.transpose(o2[0],(1,2,0)))
         plt.show()
+        """
+        """
+        plt.imshow(np.transpose(o2[0],(1,2,0)))
+        plt.show()
+        imgs = (o2[0][:3][:][:],o2[0][3:6][:][:],o2[0][6:9][:][:])
+        f = plt.figure()
+        for i in range(0,3):
+            f.add_subplot(1,3,i+1)
+            plt.imshow(np.transpose(imgs[i],(1,2,0)))           
+        plt.show(block=True)
         """
         ep_ret += r
         ep_len += 1
@@ -530,6 +517,8 @@ def sac(env_fn, actor_critic=CNNActorCritic, ac_kwargs=dict(), seed=0,
         if d or (ep_len == max_ep_len):
             if not debug:
                 logger.store(EpRet=ep_ret, EpLen=ep_len)
+            a_anti_stuck = np.array([0,0,0.1,0,0,0])
+            test_env.step(a_anti_stuck)
             o, ep_ret, ep_len = env.reset(), 0, 0
 
         # Update handling
@@ -549,14 +538,13 @@ def sac(env_fn, actor_critic=CNNActorCritic, ac_kwargs=dict(), seed=0,
             print("+++++++++++++ Test Agent +++++++++++++")
             # Test the performance of the deterministic version of the agent.
             test_agent()
-
+            logger.store(SuccEnvItr=succ_env_itr, SuccTestEnvItr=succ_test_env_itr, Time=time.time()-start_time, TotalEnvInteracts=t)
             # Log info about epoch
             if not debug:
                 print("-------------------------LOGGING EPOCH {}-------------------------".format(epoch))
                 logger.log_tabular('Epoch', epoch)
-                #logger.log_tabular('Successful env interacts', succ_env_itr)
-                #logger.log_tabular('Successful test env interacts', succ_test_env_itr)
-            # logger.log_tabuöar('Amount of Crashes', epoch=epoch)
+                logger.log_tabular('SuccEnvItr', succ_env_itr, epoch=epoch)
+                logger.log_tabular('SuccTestEnvItr', succ_test_env_itr, epoch=epoch)
                 logger.log_tabular('EpRet', with_min_and_max=True, epoch=epoch)
                 logger.log_tabular('TestEpRet', with_min_and_max=True, epoch=epoch)
                 logger.log_tabular('EpLen', average_only=True, epoch=epoch)

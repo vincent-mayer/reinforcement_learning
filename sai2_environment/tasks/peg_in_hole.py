@@ -16,13 +16,13 @@ class PegInHole(Task):
             self.hole_pos[2] += 0.05 # adjust z-position such that it gives top of the hole
             self.current_peg_pos = self.get_current_peg_pos() # returns bottom of peg
             # Hyperparameters for reward
-            self.lamda = 7 
+            self.lamda = 10 
             self.ca = 1
             self.ci = 2
             self.cr = 1
-            self.epsilon1 = 0.03 # maximal reward in alignment stage when peg closer than ccm to goal
-            self.epsilon2 = 0.01 # success, when only 0.5cm away from max insertion depth
-            self.hd = 0.03 #depth of the hole is 3cm, peg can be inserted approx. 2.5cm
+            self.epsilon1 = 0.07 # maximal reward in alignment stage when peg closer than  epsilon1 m to goal
+            self.epsilon2 = 0.02 # success, when only epsilon2 m away from max insertion depth
+            self.hd = 0.05 #depth of the hole is 4cm, 
         else:
             #setup the things that we need in the real world
             self.goal_pos = None
@@ -34,16 +34,15 @@ class PegInHole(Task):
             diff_ee_hole = self.current_peg_pos - self.hole_pos # called s in the paper
             done = False
             # Staged reward depending on phase of task
-            if np.linalg.norm(diff_ee_hole) <= self.epsilon1: # Alignment phase
+            if (np.linalg.norm(diff_ee_hole) <= self.epsilon1) and diff_ee_hole[2] >= 0: # Alignment phase, less then epsilon 1 away from peg entry and positive z difference (above hole)
                 reward = 1 + self.ca * (1 - np.linalg.norm(diff_ee_hole)/self.epsilon1)
-            elif (diff_ee_hole[2] < 0) and (np.linalg.norm(diff_ee_hole) <= self.epsilon1): # if z-position smaller zero, meaning alignment done and insertion starts
+            elif (diff_ee_hole[2] < 0) and diff_ee_hole[2] > -(self.hd - self.epsilon2) and (np.linalg.norm(diff_ee_hole) <= self.epsilon1): # Insertion phase: if z-position smaller zero, meaning alignment done and insertion starts
                 reward = 2 + self.ci*(self.hd - np.abs(diff_ee_hole[2]))
-            elif (np.abs(self.hd - diff_ee_hole[2]) <= self.epsilon2) and (np.linalg.norm(diff_ee_hole) <= self.epsilon1):
+            elif (self.hd + diff_ee_hole[2] <= self.epsilon2) and (np.linalg.norm(diff_ee_hole[:1]) <= self.epsilon2): # Success if the distance between hole entry and peg bottom equals the hole depth minus some threshhold (epsilon2) and the difference in x-y plane is smaller than some threshold (not next to the hole)
                 reward = 5
                 done = True
             else:
                 reward = self.cr*(1-(np.tanh(self.lamda * np.linalg.norm(diff_ee_hole))))
-
         else:
             #TODO
             reward = 0
